@@ -190,14 +190,62 @@ for(var i=0;i<pinyinList.length;i++){
 		o.name=o.ext_name="舞水街道"; //㵲水街道
 		o.P=o.P.replace(/F_/g,"wu");
 	};
+	//fix 拼音接口错误 2026-04-03
+	if((o.id==320116 && o.name=="六合区") || (o.id==3415 && o.name=="六安市")){
+		o.P&&(o.P=o.P.replace(/liu/g,"lu"));
+		o.P2&&(o.P2=o.P2.replace(/liu/g,"lu"));
+	};
 	//fix 拼音结果中查找 F 字母
 	if(o.id==320282125 && o.name=="湖??镇"){
 		o.name=o.ext_name="湖父镇"; //湖㳇镇
 		o.P="hu||fu||zhen";
 	};
+	var fixFChar={ //直接查找F字母 相同的直接替换，从腾讯地图数据中找到对应的字。这些字gbk编码会乱码，导出sql时可能会用到gbk
+		"柳树𨟠镇":{n:"柳树酄镇",p:"liu||shu||huan||zhen"}
+		,"宋𦙶乡":{n:"宋古乡",p:"song||gu||xiang"}
+		,"湖㳇镇":{n:"湖父镇",p:"hu||fu||zhen"}
+		,"大𫭢镇":{n:"大伦镇",p:"da||lun||zhen"}
+		,"沈𫭢镇":{n:"沈伦镇",p:"shen||lun||zhen"}
+		,"干𬒗镇":{n:"干览镇",p:"gan||lan||zhen"}
+		,"鿎石街道":{n:"达石街道",p:"da||shi||jie||dao"} //qq是塔石街道 鿎本身多音字 dá或tǎ ，瞪眼法达字更接近点
+		,"𠙶山镇":{n:"藕山镇",p:"ou||shan||zhen"}
+		,"流波䃥镇":{n:"流波幢镇",p:"liu||bo||chuang||zhen"} //qq无
+		,"虎𬇙镇":{n:"虎贝镇",p:"hu||bei||zhen"}
+		,"麦㙦镇":{n:"麦斜镇",p:"mai||xie||zhen"}
+		,"𬮤山镇":{n:"阁山镇",p:"ge||shan||zhen"}
+		,"岞𪨰镇":{n:"岞岖镇",p:"zuo||qu||zhen"}
+		,"㴔滩镇":{n:"汲滩镇",p:"ji||tan||zhen"}
+		,"𣲗源口镇":{n:"韦源口镇",p:"wei||yuan||kou||zhen"}
+		,"盛𡐓镇":{n:"盛康镇",p:"sheng||kang||zhen"}
+		,"㮾梨街道":{n:"榔梨街道",p:"lang||li||jie||dao"}
+		,"𦰡溪瑶族乡":{n:"挪溪瑶族乡",p:"nuo||xi||yao||zu||xiang"} //qq是罗溪瑶族乡 𦰡溪原名挪溪
+		,"斫𥕢乡":{n:"斫曹乡",p:"zhuo||cao||xiang"}
+		,"𬶍莲街道":{n:"鮀莲街道",p:"tuo||lian||jie||dao"} //一个提手旁 一个三点水
+		,"𬶍江街道":{n:"鮀江街道",p:"tuo||jiang||jie||dao"}
+		,"𬒈石街道":{n:"礐石街道",p:"que||shi||jie||dao"}
+		,"塘㙍镇":{n:"塘缀镇",p:"tang||zhui||zhen"}
+		,"𨻧隍镇":{n:"留隍镇",p:"liu||huang||zhen"}
+		,"织𬕂镇":{n:"织篢镇",p:"zhi||gong||zhen"}
+		,"河㙟镇":{n:"河朗镇",p:"he||lang||zhen"}
+		,"下𱳪镇":{n:"下太镇",p:"xia||tai||zhen"}
+		,"𬜯塘镇":{n:"满塘镇",p:"man||tang||zhen"}
+		,"白沙𬇕街道":{n:"白沙万街道",p:"bai||sha||wan||jie||dao"}
+		,"䢺江镇":{n:"出江镇",p:"chu||jiang||zhen"}
+		,"𰝟渡镇":{n:"鲜渡镇",p:"xian||du||zhen"}
+		,"桴㯊镇":{n:"桴焉镇",p:"fu||yan||zhen"}
+		,"㵲阳镇":{n:"舞阳镇",p:"wu||yang||zhen"}
+		,"㵲水街道":{n:"舞水街道",p:"wu||shui||jie||dao"}
+		,"𥔲嘉镇":{n:"鄂嘉镇",p:"e||jia||zhen"}
+	};
 	if(/F[^０（）]/.test(o.P)){
-		console.log(o);
-		throw new Error("可能存在未知的乱码");
+		var fVal=fixFChar[o.name];
+		if(fVal){
+			o.name=o.ext_name=fVal.n;
+			o.P=fVal.p;
+		}else{
+			console.log(o);
+			throw new Error("可能存在未知的乱码，请检查后在 fixFChar 中进行声明替换");
+		}
 	};
 	
 	

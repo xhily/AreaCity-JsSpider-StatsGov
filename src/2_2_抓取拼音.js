@@ -1,7 +1,8 @@
 /*
 拼音翻译
-http://www.qqxiuzi.cn/zh/pinyin/
+https://www.qqxiuzi.cn/zh/pinyin/
 
+拼音接口可能会出现验证码，看到错误后，根据提升刷新页面操作
 拼音接口可能会屏蔽ip，通过切换代理解决，底部有方法，先准备好代理和采集好ip
 
 
@@ -17,6 +18,7 @@ http://www.qqxiuzi.cn/zh/pinyin/
 */
 var SaveName="Step2_2_Pinyin_WebApi";
 var PinyinLocalSaveName="Step2_1_Pinyin_Local";
+var NeedQueryLeval4BadChar=false; //是否要查询乡镇级未成功拼写的字 测试用，结果是一半也拼不出来
 
 if(!$(".DataTxt").length){
 	$("body").append('<div style="position: fixed;bottom: 80px;left: 100px;padding: 20px;background: #0ca;z-index:9999999">输入'+PinyinLocalSaveName+'.txt<textarea class="DataTxt"></textarea></div>');
@@ -43,7 +45,18 @@ var QueryPinYin=function(end){
 	var keyMp={};
 	for(var i=0;i<datas.length;i++){
 		var o=datas[i];
-		if(!o.P2&&o.deep<3){
+		var needQuery=!o.P2&&o.deep<3;
+		if(!o.P2&&o.deep==3){
+			if(NeedQueryLeval4BadChar){
+				if(/F[^０（）]/.test(o.P)){ //乡镇级本地查询的，可能是非常见的文字 或者是乱码
+					needQuery=true;
+				}
+			}else if(!window.NeedQueryLeval4BadCharTips){
+				window.NeedQueryLeval4BadCharTips=true;
+				console.warn("乡镇级可能存在未知的乱码，可修改 NeedQueryLeval4BadCharTips=true 来对这些文字进行查询");
+			}
+		};
+		if(needQuery){
 			if(CacheDic[o.name]){
 				o.P2=CacheDic[o.name];
 				checkqqPY(o);
@@ -101,7 +114,10 @@ var QueryPinYin=function(end){
 					QueryPinyinErrs=0;
 					var arr=html.replace(/<\/div>$/g,"").replace(/<\/div>/g,"\n").trim().split("\n");
 					var refs=id.refs;
-					if(arr.length!=refs.length){
+					var hasCaptcha=/拖动滑块使汉字角度为正.+安全验证/.test(html);
+					if(hasCaptcha || arr.length!=refs.length){
+						if(!hasCaptcha) hasCaptcha=/captcha/i.test(html);
+						if(hasCaptcha) console.error("服务器返回了验证码，请刷新页面输入文字进行测试");
 						console.error("无效查询，返回数量不对，已停止："+refs.length+":"+arr.length,idx_);
 						console.log(id);
 						console.log(arr);

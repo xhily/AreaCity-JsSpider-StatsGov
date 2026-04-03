@@ -4,7 +4,8 @@
 更新ok_data_level*.csv、ok_geo*.csv后，需要同时更新这里的数据时间
 **************/
 (function(){
-var OpenVer="2023.240319.250114",OpenDate="2025-01-14";
+var OpenVer="2025.251231.260403",OpenDate="2026-04-03";
+var OpenVerInfo="2026-04-03更新说明：①数据源增加 国家地名信息库 数据。②重庆撤销江北区、渝北区，设立两江新区。③本次更新未包含新疆和田新设立的和康县、和安县（地名信息库已更新，但高德地图接口暂无此数据）。";
 
 var UrlRoot="https://xiangyuecn.github.io/AreaCity-JsSpider-StatsGov/";
 if(/gitee\.io/.test(location.host)){ //2024-05-01 pages无通知下线
@@ -29,9 +30,10 @@ var Url=function(txt,url,index){
 };
 var GeoTips='使用'+Url("转换工具软件",UrlTool)+'可以导入数据库、转换成shp、geojson、sql格式、转换坐标系';
 var CsvPubDate=window.CsvPubDate={
-	Level4:{
+	OpenVerInfo:OpenVerInfo
+	,Level4:{
 		name:"省市区镇四级行政区划数据"
-		,desc:'['+Url("下载",UrlRoot+"assets/download.html")+']['+Url("在线预览",UrlRoot+"#tools","#tools")+'][<span style="color:#0a0">免费开源</span>] 文件大小：3MB+，ok_data_level3.csv 200KB+；包含字段：城市id、城市name、上级pid、拼音；支持'+Url("在线转换",UrlRoot+"#tools","#tools")+'成JSON、多级联动JavaScript代码，使用'+Url("转换工具软件",UrlTool)+'可以导入数据库、转换成sql。本数据源自： 统计局、民政部、腾讯地图行政区划、高德地图行政区划，从这四大平台整合。'
+		,desc:'['+Url("下载",UrlRoot+"assets/download.html")+']['+Url("在线预览",UrlRoot+"#tools","#tools")+'][<span style="color:#0a0">免费开源</span>] 文件大小：3MB+，ok_data_level3.csv 200KB+；包含字段：城市id、城市name、上级pid、拼音；支持'+Url("在线转换",UrlRoot+"#tools","#tools")+'成JSON、多级联动JavaScript代码，使用'+Url("转换工具软件",UrlTool)+'可以导入数据库、转换成sql。本数据源自： 国家地名信息库、腾讯地图行政区划、高德地图行政区划，从这三大平台整合。'
 		,file:"ok_data_level4.csv"
 		,version:OpenVer
 		,date:OpenDate
@@ -86,9 +88,15 @@ CsvPubDate.TableHTML=function(set){
 	.GeoPubDateTitle3{color:#aaa;font-weight: bold}\
 	.GeoPubDateName{font-weight: bold;}\
 	.GeoPubDateDesc{font-size:14px;padding:5px 0;color:#888}\
-</style>\
+</style>'];
+	
+if(!set.hidePubInfo){
+	html.push('<div style="background:#f0f0f0;padding:12px 26px;border-radius:10px 10px 0 0;font-size:14px;color:#666">'+OpenVerInfo+'</div>');
+}
+	
+	html.push('\
 <table class="GeoPubDateTable" style="border-collapse: collapse;min-width: 100%;text-align: center;font-size:16px">\
-	<tbody>'];
+	<tbody>');
 	var SP='<tr><td colspan="8" style="background:#f0f0f0"><div style="height:12px"></div></td></tr>';
 	var needSP=false;
 

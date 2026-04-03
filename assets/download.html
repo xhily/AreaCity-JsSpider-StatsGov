@@ -92,6 +92,7 @@ a:hover{
 			<span style="font-size: 24px;font-weight: bold;padding-bottom:10px;margin-right:20px">数据下载</span>
 			<span class="dataVer" style="color:#999"></span>
 		</div>
+		<div class="geoVerInfo" style="background:#f0f0f0;padding:12px 26px;border-radius:10px;margin-bottom:10px;font-size:14px;color:#666"></div>
 		<table class="table">
 			<thead>
 				<tr>
@@ -110,8 +111,8 @@ a:hover{
 						<div class="downTips">- 支持在线预览、生成多级联动js代码，可用转换工具导入数据库、转成sql</div>
 					</td>
 					<td rowspan="2">
-						<a class="downOKData" href="https://gitee.com/xiangyuecn/AreaCity-JsSpider-StatsGov/releases" target="_blank">线路一</a>
-						| <a class="downOKData" href="https://github.com/xiangyuecn/AreaCity-JsSpider-StatsGov/releases" target="_blank">线路二</a>
+						<a class="downOKData" href="https://github.com/xiangyuecn/AreaCity-JsSpider-StatsGov/releases" target="_blank">线路一</a>
+						| <a class="downOKData" href="https://gh-proxy.org/https://github.com/xiangyuecn/AreaCity-JsSpider-StatsGov/releases" target="_blank">线路二</a>
 					</td>
 				</tr>
 				<tr>
@@ -131,8 +132,8 @@ a:hover{
 						<div class="downTips">- 使用本库开源的高性能查询工具，1秒可查1万个以上坐标对应的城市信息</div>
 					</td>
 					<td>
-						<a class="downOKGeo" href="https://gitee.com/xiangyuecn/AreaCity-JsSpider-StatsGov/releases" target="_blank">线路一</a>
-						| <a class="downOKGeo" href="https://github.com/xiangyuecn/AreaCity-JsSpider-StatsGov/releases" target="_blank">线路二</a>
+						<a class="downOKGeo" href="https://github.com/xiangyuecn/AreaCity-JsSpider-StatsGov/releases" target="_blank">线路一</a>
+						| <a class="downOKGeo" href="https://gh-proxy.org/https://github.com/xiangyuecn/AreaCity-JsSpider-StatsGov/releases" target="_blank">线路二</a>
 					</td>
 				</tr>
 				<tr style="color:#fa0">
@@ -156,7 +157,10 @@ a:hover{
 	<div class="mainBox">
 		<div style="font-size: 24px;font-weight: bold;padding-bottom:10px">数据版本</div>
 		<div class="geoVerDateView"></div>
-		<script>document.querySelector(".geoVerDateView").innerHTML=CsvPubDate.TableHTML({level4:true,geo:true,geo4:true});</script>
+		<script>
+			document.querySelector(".geoVerDateView").innerHTML=CsvPubDate.TableHTML({level4:true,geo:true,geo4:true});
+			document.querySelector(".geoVerInfo").innerHTML=CsvPubDate.OpenVerInfo;
+		</script>
 	</div>
 </div>
 

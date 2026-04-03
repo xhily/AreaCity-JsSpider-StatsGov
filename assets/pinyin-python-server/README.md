@@ -20,10 +20,10 @@
 :: 切换版本
 > activate python364
 :: 安装jpype1
-> conda install -c conda-forge jpype1
+> conda install -c conda-forge jpype1=0.7.0
 :: 安装pyhanlp
 > pip install pyhanlp
-:: 执行一遍，会提示要下载哪些东西
+:: 执行一遍，会提示要下载哪些东西（自动下载时，结束后可到显示的static的data目录内删除model文件夹 免得占用太大）
 > hanlp
 
 :: 环境都搞定后就可以运行服务了
@@ -33,7 +33,7 @@
 
 
 ## 【1】安装Miniconda
-conda版本随意，https://conda.io/miniconda.html
+conda版本随意，下载安装Miniconda https://www.anaconda.com/download/success
 
 
 ## 【2】安装pyhanlp

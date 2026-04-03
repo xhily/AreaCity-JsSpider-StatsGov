@@ -1,44 +1,36 @@
 /*
+2025-12-11最后找到的数据链接 https://www.mca.gov.cn/mzsj/xzqh/2025/202401xzqh.html，由于没有更新的数据，忽略本步骤，本代码保留着
+2026-04-03
+	民政部说明：https://www.mca.gov.cn/n156/n186/index.html
+		“按照《行政区划代码管理办法》相关规定，国务院民政部门应当在每年1月通过国家地名信息库发布截至上一年度末全国各级行政区划建制的行政区划代码信息。自2026年起，本栏目不再公布行政区划代码相关信息。请前往民政部门户网站首页的国家地名信息库版块查询相关信息。”
+	国家地名信息库：https://dmfw.mca.gov.cn/
+
+
+请忽略本步骤
+
+
+
+
+
+
+
+
+
 获取民政部信息辅助补全
 
 在以下页面执行
-https://www.mca.gov.cn/n156/n186/index.html 中打开最新行政区划代码链接
-[2023-12-11] 到2021-05-10的页面执行，2022-03-21的没有完整页面，目前只生成结果文件，忽略民政部的数据
+https://www.mca.gov.cn/n156/n2679/index.html 中打开最新行政区划代码链接
+			老版本的链接在 https://www.mca.gov.cn/n156/n186/index.html
 
 先加载jQuery
 var s=document.createElement("script");
 s.src="https://cdn.bootcdn.net/ajax/libs/jquery/1.9.1/jquery.min.js";
 document.body.append(s);
-
-加载数据
-	先直接运行本代码，根据提示输入上一步结果到文本框 (内容太大，控制台吃不消，文本框快很多)
-	或者使用本地网址更快：
-	var url="https://地址/";
-	var s=document.createElement("script");s.src=url+"Step1_1_StatsGov.txt?t="+Date.now();document.documentElement.appendChild(s)
 */
 "use strict";
 jQuery;
 
-//如果民政部的数据比统计局的旧，就设为true，忽略民政部的数据，只生成结果文件
-var MCA_IsOld=true; //2022-03-21 比统计局2023-09-11的老
-
-var SaveName="Step1_2_Merge_MCA"
-var PrevSaveName="Step1_1_StatsGov";
-
-if(!$(".DataTxt").length){
-	$("body").append('<div style="position: fixed;bottom: 80px;left: 100px;padding: 20px;background: #0ca;z-index:9999999">输入'+PrevSaveName+'.txt<textarea class="DataTxt"></textarea></div>');
-};
-if(!window[PrevSaveName]){
-	var val=$(".DataTxt").val();
-	if(!val){
-		throw new Error("需要输入"+PrevSaveName+".txt");
-	}else{
-		window[PrevSaveName]=eval(val+";"+PrevSaveName);
-	};
-};
-var StatsGovData=window[PrevSaveName];
-var cityList=StatsGovData.cityList;
-window[PrevSaveName]=null;
+var SaveName="Step1_2_MCA"
 
 
 //*******生成民政部数据*******
@@ -48,11 +40,13 @@ var m;
 var data={};
 var arr=[];
 while(m=exp.exec(allTxt)){
+	var xjs=/\*$/.test(m[2]); //省直辖县级行政单位，县级市（如潜江市） 不包括直筒子市（如东莞市）
 	var o={
-		name: m[2]
+		name: m[2].replace(/\*$/g,"")
 		,code: m[1]
 		,child: []
 	};
+	if(xjs) o.xjs=1;
 	o.code=o.code.replace(/(0000|00)$/,"");
 	data[o.code]=o;
 	arr.push(o);
@@ -63,62 +57,36 @@ if(arr[0].name!="北京市" || arr[arr.length-1].code!="82"){
 };
 console.log("读取到"+arr.length+"条数据", arr);
 
-
-//人工修正数据，有些直辖市mca没有上级，用统计局的补齐
+//人工修正数据，有些直辖市mca没有上级，补齐
 var fixParent={
-	1101:{name:"市辖区"}//北京市
-	,1201:{name:"市辖区"}//天津市
-	,3101:{name:"市辖区"}//上海市
-	,5001:{name:"市辖区"}//重庆市
-	,5002:{name:"县"}//重庆市
-	
-	,4190:{name:"省直辖县级行政区划"}//河南省
-	,4290:{name:"省直辖县级行政区划"}//湖北省
-	,4690:{name:"省直辖县级行政区划"}//海南省
-	,6590:{name:"自治区直辖县级行政区划"}//新疆
+	1101:{name:"北京市"}
+	,1201:{name:"天津市"}
+	,3101:{name:"上海市"}
+	,5001:{name:"重庆城区"}
+	,5002:{name:"重庆郊县"}
 };
-//mca原始数据处理
-var fixRawMCA={
-	//350403:{name:"三元区", replaceAs:{code:"350404",name:"三元区"}}
-};
-//人工修正数据，移除统计局的数据，mca新数据已撤销的市，统计局滞后
+//人工修正数据，移除单独没有下级数据的港澳台
 var fixRemove={
-	//320602:{name:"崇川区"}, //统计局老的id移除掉，新id为320613
-	
-	//移除单独的港澳台，mca这些没有下级并且统计局没有这些
 	71:{name:"台湾省"}
 	,81:{name:"香港特别行政区"}
 	,82:{name:"澳门特别行政区"}
-};
-//人工修正数据，mca新数据已改名，统计局滞后
-var fixRename={
-	//130502:{name:"襄都区"}
 };
 //构造成统一格式
 var list=[];
 for(var i=0;i<arr.length;i++){
 	var o=arr[i];
-	var fix=fixRawMCA[o.code];
-	if(fix){
-		if(fix.remove){
-			fix.fix=true;
-			delete data[o.code];
-			continue;
-		}else if(fix.replaceAs){
-			fix.fix=true;
-			delete data[o.code];
-			o.code=fix.replaceAs.code||o.code;
-			o.name=fix.replaceAs.name||o.name;
-			data[o.code]=o;
-		}else{
-			throw new Error("无效的fixRawMCA",fix,o);
-		}
-	};
 	if(o.code.length==2){
 		list.push(o);
 	}else{
 		var pid="";
-		if(o.code.length==4){
+		if(o.xjs){
+			if(/^(\d\d)90/.test(o.code)){
+				pid=RegExp.$1;
+			}else{
+				console.error(o);
+				throw new Error("未适配的县级市编号");
+			}
+		}else if(o.code.length==4){
 			pid=o.code.substr(0,2);
 		}else if(o.code.length==6){
 			pid=o.code.substr(0,4);
@@ -145,165 +113,19 @@ for(var i=0;i<arr.length;i++){
 		parent.child.push(o);
 	};
 };
-for(var k in fixRawMCA){
-	if(!fixRawMCA[k].fix){
-		console.error("存在未被匹配的预定义fixRawMCA",k,fixRawMCA[k]);
-		throw new Error();
-	};
-};
 console.log("民政部数据准备完成",list);
 
 
 
-
-//*******合并数据*******
-var notfinds=[];//没有在mca列表里的统计局多出来的数据
-var notfindsIgnore=[];//已知的多余
-var maxDeep=0;
-function merge(arr1,arr2,deep){
-	if(deep==3){
-		if(arr1.length){
-			maxDeep=3;//有镇级
-		};
-		return;
-	};
-	maxDeep=Math.max(maxDeep,deep);
-	
-	//检查冲突
-	for(var i=0;i<arr1.length;i++){
-		var oi=arr1[i];
-		var oiCode=(oi.code+"").substr(0,6).replace(/(0000|00)$/,"");
-		var find=false;
-		for(var j=0;j<arr2.length;j++){
-			var oj=arr2[j];
-			if(oiCode==oj.code && oi.name!=oj.name){
-				var rename=fixRename[oiCode];
-				if(rename && rename.name==oj.name){
-					rename.fix=true;
-					console.log("改名项",oi,"->",oj);
-					oi.name=oj.name;
-				}else{
-					console.error("名称不同",oi,oj);
-					throw new Error();
-				};
-			};
-			if(oi.name==oj.name && oiCode!=oj.code){
-				if(fixRemove[oiCode] || fixRemove[oj.code]){
-					continue;//是要移除的
-				}
-				console.error("编号不同",oi,oj);
-				throw new Error();
-			};
-			if(oi.name==oj.name){
-				oi.findOj=oj;
-				find=true;
-			};
-		};
-		if(!find){
-			var fixItem=fixRemove[oiCode];
-			if(fixItem&&fixItem.name==oi.name){//检查移除列表，发现就直接移除
-				fixItem.fix=true;
-				console.log("移除匹配项",oi);
-				arr1.splice(i,1);
-				i--;
-			}else if(deep==2&&oiCode.length==4){
-				//NOOP 补齐的区级，如东莞的区级
-			}else if(/(新区|新城|新城区|实验区|保税区|开发区|管理区|食品区|园区|产业园|名胜区|示范区)$/.test(oi.name)){
-				notfindsIgnore.push({code:oi.code,name:oi.name});
-			}else{
-				notfinds.push({code:oi.code,name:oi.name});
-			};
-		};
-	};
-	
-	//合并不存在的项
-	for(var j=0;j<arr2.length;j++){
-		var oj=arr2[j];
-		var find=false;
-		for(var i=0;i<arr1.length;i++){
-			var oi=arr1[i];
-			if(oi.name==oj.name){
-				find=true;
-			};
-		};
-		//合并
-		if(!find){
-			var fixItem=fixRemove[oj.code];
-			if(fixItem&&fixItem.name==oj.name){
-				fixItem.fix=true;
-				console.log("阻止添加新项",oj);
-			}else{
-				console.log("已添加",oj);
-				arr1.push(oj);
-			};
-		};
-	};
-	
-	//处理child
-	for(var i=0;i<arr1.length;i++){
-		var oi=arr1[i];
-		if(oi.findOj){
-			merge(oi.child,oi.findOj.child,deep+1);
-		};
-	};
-};
-if(!MCA_IsOld){
-	merge(cityList,list,0);
-
-	if(notfinds.length){
-		console.warn("发现"+notfinds.length+"条民政部没有的统计局多余项", notfinds);
-	};
-	if(notfindsIgnore.length){
-		console.log("忽略"+notfindsIgnore.length+"条民政部没有的统计局多余项", notfindsIgnore);
-	};
-	for(var k in fixRemove){
-		if(!fixRemove[k].fix){
-			console.error("存在未被匹配的预定义fixRemove",k,fixRemove[k]);
-			throw new Error();
-		};
-	};
-	for(var k in fixRename){
-		if(!fixRename[k].fix){
-			console.error("存在未被匹配的预定义fixRename",k,fixRename[k]);
-			throw new Error();
-		};
-	};
-
-	console.log("合并完成", cityList);
-}else{
-	maxDeep=3;
-	console.warn("MCA_IsOld，丢弃民政部数据");
-}
-
-
-
 /****格式化数据*****/
-
-//顶上4个省的直辖市直接往上提一级
-for(var i=0;i<cityList.length;i++){
-	var oi=cityList[i];
-	for(var j=0;j<oi.child.length;j++){
-		var oj=oi.child[j];
-		if(/行政区划$/ig.test(oj.name)){
-			console.log("直辖市child上提一级",oj);
-			oi.child.splice(j,1);
-			j--;
-			for(var k=0;k<oj.child.length;k++){
-				var ok=oj.child[k];
-				oi.child.push({
-					name:ok.name
-					,code:ok.code
-					,child:[ok]
-				});
-			};
-		};
-	};
-};
-
 var format=function(arr,deep){
 	var rtv=[];
 	for(var i=0;i<arr.length;i++){
 		var oi=arr[i];
+		if(fixRemove[oi.code]){
+			console.log("移除一项", oi);
+			continue;
+		}
 		var o={
 			name:oi.name
 			,code:(oi.code+"000000000000").substr(0,12)
@@ -311,7 +133,7 @@ var format=function(arr,deep){
 		};
 		rtv.push(o);
 		
-		if(deep!=maxDeep){
+		if(deep!=2){
 			if(oi.child.length==0){
 				console.log(deep+" 缺失下级，用自身补齐",oi);
 				oi.child.push({
@@ -324,6 +146,9 @@ var format=function(arr,deep){
 			if(oi.child.length!=0){
 				o.child=format(oi.child,deep+1);
 			};
+		}else if(oi.child.length>0){
+			console.error(o);
+			throw new Error("多余的下级数据");
 		};
 	};
 	rtv.sort(function(a,b){
@@ -331,22 +156,18 @@ var format=function(arr,deep){
 	});
 	return rtv;
 };
-cityList=format(cityList,0);
-
+var cityList=format(list,0);
 console.log(cityList);
-
-var saveObj={
-	statsGovYear:StatsGovData.year
-	,notFinds:notfinds
-	,notFindsIgnore:notfindsIgnore
-	,cityList:cityList
-};
 
 var url=URL.createObjectURL(
 	new Blob([
 		new Uint8Array([0xEF,0xBB,0xBF])
 		,"var "+SaveName+"="
-		,JSON.stringify(saveObj,null,"\t")
+		,JSON.stringify({
+			srcUrl:location.href||""
+			,srcRef:document.referrer||""
+			,cityList:cityList
+		},null,"\t")
 	]
 	,{"type":"text/plain"})
 );

@@ -1,11 +1,11 @@
 /*
 获取腾讯地图城市数据
+2026-04-03 腾讯地图数据（20240814之后的版本）乡镇级存在很多和上级不一致的自定义编号，难以处理，新版本中此数据将仅用来做辅助和验证用。
+	2023-4-3 20230302和20230112差异对比，港澳台的编号全部变了，此次更新未让这些数据生效，将这部分新数据复制到 Step1_4_QQmap_20230302New.txt，然后替换成上版本数据
+	2023-12-11 20230831和20230704差异对比，河北多了芦台经济开发区、雄安新区，暂不处理，这两恢复成老版本的数据（同上面）
 
 在以下页面执行
 https://lbs.qq.com/webservice_v1/guide-region.html
-
-2023-4-3 20230302和20230112差异对比，港澳台的编号全部变了，此次更新未让这些数据生效，将这部分新数据复制到 Step1_4_QQmap_20230302New.txt，然后替换成上版本数据
-2023-12-11 20230831和20230704差异对比，河北多了芦台经济开发区、雄安新区，暂不处理，这两恢复成老版本的数据（同上面）
 */
 "use strict";
 (function(){
@@ -20,8 +20,8 @@ var Level={
 };
 
 window.StopLoad=false;//true手动停止运行，"End"假装采集完成
-var DATA=window.DATA||window[SaveName]||{ver:"",cityList:[]};
-window.DATA=DATA;
+window.QQmapReqCache=window.QQmapReqCache||{}; //请求缓存数据，重新执行不需要重复请求
+var DATA={ver:"",cityList:[]};
 
 var Load_Thread_Count=1;//模拟线程数
 var Load_Thread_Speed=5;//apikey被限制每秒5个查询
@@ -34,47 +34,48 @@ var Load_Full_End=92;//此城市包括下级全部抓取完毕
 
 var fixFill={//缺失了下一级的复制自身当做下级，都是直辖，就缺了一级。直筒子市和港澳不在这里处理
 	//【直辖市】
-	110000:"北京市"
-	,120000:"天津市"
-	,310000:"上海市"
-	,500000:"重庆市"
+	 110000:{level:1,name:"北京市"}
+	,120000:{level:1,name:"天津市"}
+	,310000:{level:1,name:"上海市"}
+	,500000:{level:1,name:"重庆市"}
 	
 	//【省直辖县级市】以下一坨可以从数据库中排序出来
-	,419001:"济源市"
+	,419001:{level:2,name:"济源市"}
 	
-	,429004:"仙桃市"
-	,429005:"潜江市"
-	,429006:"天门市"
-	,429021:"神农架林区"
+	,429004:{level:2,name:"仙桃市"}
+	,429005:{level:2,name:"潜江市"}
+	,429006:{level:2,name:"天门市"}
+	,429021:{level:2,name:"神农架林区"}
 	
-	,469001:"五指山市"
-	,469002:"琼海市"
-	,469005:"文昌市"
-	,469006:"万宁市"
-	,469007:"东方市"
-	,469021:"定安县"
-	,469022:"屯昌县"
-	,469023:"澄迈县"
-	,469024:"临高县"
-	,469025:"白沙黎族自治县"
-	,469026:"昌江黎族自治县"
-	,469027:"乐东黎族自治县"
-	,469028:"陵水黎族自治县"
-	,469029:"保亭黎族苗族自治县"
-	,469030:"琼中黎族苗族自治县"
+	,469001:{level:2,name:"五指山市"}
+	,469002:{level:2,name:"琼海市"}
+	,469005:{level:2,name:"文昌市"}
+	,469006:{level:2,name:"万宁市"}
+	,469007:{level:2,name:"东方市"}
+	,469021:{level:2,name:"定安县"}
+	,469022:{level:2,name:"屯昌县"}
+	,469023:{level:2,name:"澄迈县"}
+	,469024:{level:2,name:"临高县"}
+	,469025:{level:2,name:"白沙黎族自治县"}
+	,469026:{level:2,name:"昌江黎族自治县"}
+	,469027:{level:2,name:"乐东黎族自治县"}
+	,469028:{level:2,name:"陵水黎族自治县"}
+	,469029:{level:2,name:"保亭黎族苗族自治县"}
+	,469030:{level:2,name:"琼中黎族苗族自治县"}
 	
-	,659001:"石河子市"
-	,659002:"阿拉尔市"
-	,659003:"图木舒克市"
-	,659004:"五家渠市"
-	,659005:"北屯市"
-	,659006:"铁门关市"
-	,659007:"双河市"
-	,659008:"可克达拉市"
-	,659009:"昆玉市"
-	,659010:"胡杨河市"
+	,659001:{level:2,name:"石河子市"}
+	,659002:{level:2,name:"阿拉尔市"}
+	,659003:{level:2,name:"图木舒克市"}
+	,659004:{level:2,name:"五家渠市"}
+	,659005:{level:2,name:"北屯市"}
+	,659006:{level:2,name:"铁门关市"}
+	,659007:{level:2,name:"双河市"}
+	,659008:{level:2,name:"可克达拉市"}
+	,659009:{level:2,name:"昆玉市"}
+	,659010:{level:2,name:"胡杨河市"}
 	
-	,659011:"新星市"
+	,659011:{level:2,name:"新星市"}
+	,659012:{level:2,name:"白杨市"}
 };
 
 
@@ -100,7 +101,7 @@ var threadSleep=function(run){
 	threadTimes.length=Math.min(Load_Thread_Speed*2,threadTimes.length);
 	setTimeout(run,sleep);
 };
-window.FixFillFn=function(parent){//出错时，手动调用一下fixFill
+function addFixFill(fixSet, parent){
 	var fixItm={
 		name:parent.name
 		,code:parent.code
@@ -113,6 +114,7 @@ window.FixFillFn=function(parent){//出错时，手动调用一下fixFill
 	parent.load=Load_Wait_Child;
 	parent.child=[fixItm];
 	
+	fixSet.fix=1;
 	console.log(parent.code+":"+parent.name+" 自动补充唯一完全相同的下级");
 };
 function addCity(parent,arr,o){
@@ -125,36 +127,45 @@ function addCity(parent,arr,o){
 		,load:0
 	};
 	arr.push(itm);
-	
-	var fix=fixFill[itm.code];
-	if(itm.name==fix){
-		FixFillFn(itm);
-	};
+	return itm;
 };
 
 var load_shen_all=function(next){
 	DATA.cityList=[];
+	var success=function(data){
+		console.log("省份结果",data);
+		DATA.ver=data.data_version;
+		
+		var list=data.result[0];
+		if(list.length!=34){
+			console.error("省份结果0的个数不对");
+			return;
+		};
+		
+		for(var i=0;i<list.length;i++){
+			var itm=addCity(null,DATA.cityList,list[i]);
+			
+			var fixSet=fixFill[itm.code];
+			if(fixSet && fixSet.level==1){ //直辖市复制一份下级
+				addFixFill(fixSet, itm);
+			}
+		};
+		console.log("省份采集完成",DATA);
+		
+		next();
+	};
+	if(QQmapReqCache.shen_all){
+		success(JSON.parse(QQmapReqCache.shen_all));
+		return;
+	};
 	$.ajax({
 		url:"https://apis.map.qq.com/ws/district/v1/list?key=OB4BZ-D4W3U-B7VVO-4PJWW-6TKDJ-WPB77"
 		,error:function(){
 			console.error("加载省份列表失败");
 		}
 		,success:function(data){
-			console.log("省份结果",data);
-			DATA.ver=data.data_version;
-			
-			var list=data.result[0];
-			if(list.length!=34){
-				console.error("省份结果0的个数不对");
-				return;
-			};
-			
-			for(var i=0;i<list.length;i++){
-				addCity(null,DATA.cityList,list[i]);
-			};
-			console.log("省份采集完成",DATA);
-			
-			next();
+			QQmapReqCache.shen_all=JSON.stringify(data);
+			success(data);
 		}
 	});
 };
@@ -185,6 +196,27 @@ function load_x_childs(itm, next){
 	LogX(Math.floor(times/60)+"′"+(times%60)+"″ "+(loadReqCount/times).toFixed(1)+"/s 读取"+loadReqCount+"次 BL:"+blockReqCount+" "+getJD()+" ["+city.name+"]"+levelObj.n);
 	
 	loadReqCount++;
+	var success=function(data, isCache){
+		if(data.reqRes!="fix"){
+			var list=data.result[0];
+			for(var i=0;i<list.length;i++){
+				addCity(city,city.child,list[i]);
+			};
+		};
+		
+		city.load=Load_Wait_Child;
+		JD[levelNextObj.k+"_count"]+=city.child.length;
+		
+		if(isCache){
+			next();
+		}else{
+			threadSleep(next);
+		}
+	};
+	if(QQmapReqCache[city.code]){
+		success(JSON.parse(QQmapReqCache[city.code]), 1);
+		return;
+	}
 	$.ajax({
 		url:"https://apis.map.qq.com/ws/district/v1/getchildren?id="+city.code+"&key=OB4BZ-D4W3U-B7VVO-4PJWW-6TKDJ-WPB77"
 		,timeout:20000
@@ -204,7 +236,17 @@ function load_x_childs(itm, next){
 					return;
 				};
 				if(data.status==363&&data.message=="错误的id"){
-					console.error("下级列表没有，需要在fixFill中加入填充数据，然后调用FixFillFn重新修正上下级后继续采集",itm);
+					var fixSet=fixFill[city.code], fixLevel=itm.level, fixObj=city;
+					if(!fixSet || fixSet.level!=fixLevel){
+						//检查是否是上级的问题（当前为县级市加载的乡镇级）
+						fixSet=fixFill[city.parent.code]; fixLevel--; fixObj=city.parent;
+					}
+					if(fixSet && fixSet.level==fixLevel){ //没有下级，复制自身当做下级
+						addFixFill(fixSet, fixObj);
+						success({reqRes:"fix"}, 1);
+						return;
+					};
+					console.error("下级列表没有，需要在fixFill中加入填充数据，然后重新执行采集",itm);
 					return;
 				};
 				
@@ -213,15 +255,8 @@ function load_x_childs(itm, next){
 				});
 				return;
 			};
-			var list=data.result[0];
-			for(var i=0;i<list.length;i++){
-				addCity(city,city.child,list[i]);
-			};
-			
-			city.load=Load_Wait_Child;
-			JD[levelNextObj.k+"_count"]+=city.child.length;
-			
-			threadSleep(next);
+			QQmapReqCache[city.code]=JSON.stringify(data);
+			success(data);
 		}
 	});
 };
@@ -237,6 +272,13 @@ var load_end=function(isErr){
 	if(isErr){
 		console.error("出错终止", getJD());
 		return;
+	}
+	for(var k in fixFill){
+		var o=fixFill[k];
+		if(!o.fix){
+			console.error("存在未匹配的fixFill，请删除后重新运行",o,fixFill);
+			return;
+		}
 	}
 	
 	var logTxt="完成："+(Date.now()-RunLoad.T1)/1000+"秒"+getJD();
@@ -365,13 +407,6 @@ function setFullLoad(itm,level){
 	};
 	itm.load=Load_Full_End;
 };
-function clearLoadErr(childs){
-	for(var i=0;i<childs.length;i++){
-		var itm=childs[i];
-		itm.load=itm.load>50?itm.load:0;
-		clearLoadErr(itm.child);
-	};
-};
 
 
 
@@ -404,15 +439,7 @@ window.RunLoad=function(){
 		};
 	};
 	
-	
-	if(DATA.cityList.length){
-		console.log("恢复采集...");
-		clearLoadErr(DATA.cityList);
-		
-		start();
-	}else{
-		load_shen_all(start);
-	}
+	load_shen_all(start);
 }
 })();//@ sourceURL=console.js
 
